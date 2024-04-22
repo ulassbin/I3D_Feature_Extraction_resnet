@@ -52,7 +52,7 @@ def run(i3d, frequency, frames_dir, batch_size, sample_mode):
 	chunk_size = 16
 	def forward_batch(b_data):
 		b_data = b_data.transpose([0, 4, 1, 2, 3])
-		b_data = torch.from_numpy(b_data)   # b,c,t,h,w  # 40x3x16x224x224
+		b_data = torch.from_numpy(b_data)   # b,c,t,h,w  # 40x3x16x224x224 (IMAGES MUST BE 224x224 shape!)
 		with torch.no_grad():
 			b_data = Variable(b_data.cuda()).float()
 			inp = {'frames': b_data}
