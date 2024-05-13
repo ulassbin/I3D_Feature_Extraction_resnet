@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.autograd import Variable
 import torchvision
-from extract_features import run
+from extract_features import run, toColaFeatures
 from resnet import i3_res50
 import os
 from moviepy.editor import VideoFileClip
@@ -107,6 +107,7 @@ def generate(datasetpath, outputpath, pretrainedpath, frequency, batch_size, sam
 		Path(temppath).mkdir(parents=True, exist_ok=True) # Reopen
 		extract_all_frames_with_padding(video, temppath, temporal_padding, 8)
 		features = run(i3d, frequency, temppath, batch_size, sample_mode)
+		features = toColaFeatures(features,sample_mode)
 		print("Obtained features of size: ", features.shape)
 		np.save(outputpath + "/" + videoname, features)
 		del features

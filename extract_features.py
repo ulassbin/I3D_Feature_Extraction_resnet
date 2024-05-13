@@ -6,6 +6,7 @@ import torch
 from natsort import natsorted
 from PIL import Image
 from torch.autograd import Variable
+import copy
 
 
 def load_frame(frame_file):
@@ -18,6 +19,20 @@ def load_frame(frame_file):
 	assert(data.min()>=-1.0)
 	return data
 
+def toColaFeatures(feature_in, sample_mode, average_crops = False):
+	l, crop, feat = feature_in.shape 
+	if(sample_mode == "oversample"):
+		feature_out = copy.deepcopy(feature_in)
+		if(average_crops):
+			feature_out = np.mean(feature_out,axis=1) # Average over all crops!
+		else:
+			feature_out = feature_out[:,2,:] # Get the center crop
+	
+	if(feat == 2048):
+		feature_out = feature_out.reshape(l,-1,2)
+		feature_out = np.mean(feature_out, axis=2) # 
+	
+	return feature_out
 
 def load_rgb_batch(frames_dir, rgb_files, frame_indices):
 	batch_data = np.zeros(frame_indices.shape + (256,340,3))
