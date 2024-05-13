@@ -16,6 +16,7 @@ from resnet import i3_res50
 import os
 
 
+
 def generate(datasetpath, outputpath, pretrainedpath, frequency, batch_size, sample_mode):
 	Path(outputpath).mkdir(parents=True, exist_ok=True)
 	temppath = outputpath+ "/temp/"
