@@ -16,6 +16,7 @@ from resnet import i3_res50
 import os
 from moviepy.editor import VideoFileClip
 from PIL import Image  # Import Image module from PIL
+import cv2
 
 
 def extract_all_frames_with_padding(input_video, output_path, temporal_padding="same", padding_size=0):
@@ -34,9 +35,9 @@ def extract_all_frames_with_padding(input_video, output_path, temporal_padding="
     # Load the video clip
     clip = VideoFileClip(input_video)
     
-    vid_frames = int(clip.duration * clip.fps)
+    vid_frames = get_video_length_raw(input_video)#int(clip.duration * clip.fps)
     # Get total number of frames in the video
-    total_frames = int((clip.duration) * clip.fps + 2 * padding_size )
+    total_frames = vid_frames + 2 * padding_size
     
     # Print total number of frames
     print("Total number of frames {} (including padding {}):".format(vid_frames,total_frames))
@@ -44,7 +45,7 @@ def extract_all_frames_with_padding(input_video, output_path, temporal_padding="
     # Get first and last frames for temporal padding
 
     
-    # Loop through all frames in the video
+    # Loop through all frames in the video (Can override here with opencv...)
     offset = padding_size
     for i, frame in enumerate(clip.iter_frames(fps=clip.fps)):
         # Save frame as an image
@@ -75,6 +76,18 @@ def extract_all_frames_with_padding(input_video, output_path, temporal_padding="
         end_padding_frame.save(frame_path)
 
 
+def get_video_length_raw(video_path): 
+    # Just checks it by manually opening up frames
+    cap = cv2.VideoCapture(video_path)
+    frame_count = 0
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame_count += 1
+    cap.release()
+
+    return frame_count
 
 def generate(datasetpath, outputpath, pretrainedpath, frequency, batch_size, sample_mode, video_extension, temporal_padding="none"):
 	Path(outputpath).mkdir(parents=True, exist_ok=True)
@@ -86,17 +99,18 @@ def generate(datasetpath, outputpath, pretrainedpath, frequency, batch_size, sam
 	i3d.cuda()
 	i3d.train(False)  # Set model to evaluate mode
 	for video in videos:
+		print("{} with len {}".format(video, get_video_length_raw(video)))
 		videoname = video.split("/")[-1].split(".")[0]
 		startime = time.time()
-		print("Generating for {0}".format(video))
-		Path(temppath).mkdir(parents=True, exist_ok=True)
-		#chain = generate_filter_chain(video, temporal_padding)
-		#ffmpeg.input(chain).output('{}%d.jpg'.format(temppath),start_number=0).global_args('-loglevel', 'quiet').run()  
+		Path(temppath).mkdir(parents=True, exist_ok=True) # Clear Initially
+		shutil.rmtree(temppath) # Clear initially
+		Path(temppath).mkdir(parents=True, exist_ok=True) # Reopen
 		extract_all_frames_with_padding(video, temppath, temporal_padding, 8)
-		print("Preprocessing done..")
 		features = run(i3d, frequency, temppath, batch_size, sample_mode)
-		np.save(outputpath + "/" + videoname, features)
 		print("Obtained features of size: ", features.shape)
+		np.save(outputpath + "/" + videoname, features)
+		del features
+		torch.cuda.empty_cache()
 		shutil.rmtree(temppath)
 		print("done in {0}.".format(time.time() - startime))
 
